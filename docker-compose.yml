@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./django_backend
+    command: python manage.py runserver 0.0.0.0:8080
+    volumes:
+      - ./django_backend:/usr/src/app
+    ports:
+      - 8000:8080
+    env_file:
+      - ./.env.dev
