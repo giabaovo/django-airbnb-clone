@@ -5,8 +5,21 @@ services:
     build: ./django_backend
     command: python manage.py runserver 0.0.0.0:8080
     volumes:
-      - ./django_backend:/usr/src/app
+      - ./django_backend:/usr/src/app/
     ports:
       - 8000:8080
     env_file:
       - ./.env.dev
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgresuser
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=djangoairbnb
+
+volumes:
+  postgres_data:
