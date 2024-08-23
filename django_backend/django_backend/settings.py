@@ -49,7 +49,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
-    'http://127.0.0.1:3000',
+    'http://localhost:3000',
 ]
 
 REST_AUTH = {
@@ -73,6 +73,7 @@ INSTALLED_APPS = [
 
     'allauth',
     'allauth.account',
+    'allauth.socialaccount',
 
     'dj_rest_auth',
     'dj_rest_auth.registration',
