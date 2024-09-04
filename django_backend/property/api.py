@@ -1,13 +1,18 @@
-from rest_framework.permissions import IsAuthenticated
+from django.http import JsonResponse
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from .serializers import PropertySerializer
 
 from .models import Property
+from user_account.models import User
 
 from .permissions import IsAuthenticatedOrReadOnly
+
+from .exception import InvalidPropertyIDException
 
 
 class PropertyAPIView(APIView):
@@ -27,3 +32,31 @@ class PropertyAPIView(APIView):
         property = Property.objects.all().order_by('-created_at')
         serializer = PropertySerializer(property, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserFavoritePropertyAPIView(APIView):
+    def get(self, request):
+        try:
+            if not request.user:
+                return JsonResponse({'favorite_property': []})
+            user = User.objects.get(id=request.user.id)
+            user_favorite_property = Property.objects.filter(favorited=user).values()
+            return JsonResponse({'favorite_property': list(user_favorite_property)})
+        except Exception as e:
+            raise APIException(detail=str(e))
+
+
+class ToggleFavoritePropertyAPIView(APIView):
+    def post(self, request, pk):
+        try:
+            property = Property.objects.get(pk=pk)
+
+            if request.user in property.favorited.all():
+                property.favorited.remove(request.user)
+                return Response(status=status.HTTP_200_OK)
+            property.favorited.add(request.user)
+            return Response(status=status.HTTP_200_OK)
+        except Property.DoesNotExist:
+            raise InvalidPropertyIDException()
+        except Exception as e:
+            raise APIException(detail=str(e))
