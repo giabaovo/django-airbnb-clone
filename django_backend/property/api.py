@@ -34,6 +34,15 @@ class PropertyAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class PropertyByIdAPIView(APIView):
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get(self, request, pk):
+        property = Property.objects.get(pk=pk)
+        serializer = PropertySerializer(property)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class UserFavoritePropertyAPIView(APIView):
     def get(self, request):
         try:

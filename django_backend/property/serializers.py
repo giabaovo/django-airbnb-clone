@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from .models import Property
 
+from user_account.serializers import UserSerializer
+
 
 class LocationField(serializers.Field):
     def to_representation(self, value):
@@ -22,6 +24,7 @@ class LocationField(serializers.Field):
 
 class PropertySerializer(serializers.ModelSerializer):
     location = LocationField(source='*')
+    landlord = UserSerializer(read_only=True)
 
     class Meta:
         model = Property
