@@ -5,14 +5,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
-from .serializers import PropertySerializer
+from .serializers import PropertySerializer, ReservationSerializer
 
-from .models import Property
+from .models import Property, Reservation
 from user_account.models import User
 
 from .permissions import IsAuthenticatedOrReadOnly
 
 from .exception import InvalidPropertyIDException
+
+import datetime
 
 
 class PropertyAPIView(APIView):
@@ -69,3 +71,28 @@ class ToggleFavoritePropertyAPIView(APIView):
             raise InvalidPropertyIDException()
         except Exception as e:
             raise APIException(detail=str(e))
+
+
+class ReservationAPIView(APIView):
+    def post(self, request, pk):
+        data = request.data
+
+        data["start_date"] = data.pop("startDate")
+        data["end_date"] = data.pop("endDate")
+        data["property"] = data.pop("listingId")
+        data["total_price"] = data.pop("totalPrice")
+
+        serializer = ReservationSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(created_by=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, pk):
+        try:
+            property = Property.objects.get(pk=pk)
+            reservation = Reservation.objects.filter(property=property).order_by('-created_at')
+            serializer = ReservationSerializer(reservation, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Property.DoesNotExist:
+            raise InvalidPropertyIDException()

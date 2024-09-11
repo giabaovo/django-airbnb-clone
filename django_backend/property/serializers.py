@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Property
+from .models import Property, Reservation
 
 from user_account.serializers import UserSerializer
 
@@ -46,4 +46,23 @@ class PropertySerializer(serializers.ModelSerializer):
             'landlord': {'required': False},
             'id': {'required': False},
             'created_at': {'required': False},
+        }
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reservation
+        fields = (
+            'start_date',
+            'end_date',
+            'property',
+            'total_price',
+        )
+
+    def to_representation(self, instance):
+        return {
+            'startDate': instance.start_date,
+            'endDate': instance.end_date,
+            'totalPrice': instance.total_price,
+            'listingId': instance.property.id,
         }
