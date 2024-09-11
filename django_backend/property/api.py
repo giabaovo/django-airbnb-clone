@@ -49,10 +49,9 @@ class UserFavoritePropertyAPIView(APIView):
     def get(self, request):
         try:
             if not request.user:
-                return JsonResponse({'favorite_property': []})
-            user = User.objects.get(id=request.user.id)
-            user_favorite_property = Property.objects.filter(favorited=user).values()
-            return JsonResponse({'favorite_property': list(user_favorite_property)})
+                return JsonResponse({'listings': []})
+            user_favorite_property = Property.objects.filter(favorited=request.user).values()
+            return JsonResponse({'listings': list(user_favorite_property)})
         except Exception as e:
             raise APIException(detail=str(e))
 
