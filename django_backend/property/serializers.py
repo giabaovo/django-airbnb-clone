@@ -50,9 +50,12 @@ class PropertySerializer(serializers.ModelSerializer):
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    property = PropertySerializer(required=False)
+
     class Meta:
         model = Reservation
         fields = (
+            'id',
             'start_date',
             'end_date',
             'property',
@@ -60,9 +63,11 @@ class ReservationSerializer(serializers.ModelSerializer):
         )
 
     def to_representation(self, instance):
-        return {
-            'startDate': instance.start_date,
-            'endDate': instance.end_date,
-            'totalPrice': instance.total_price,
-            'listingId': instance.property.id,
-        }
+        representation = super().to_representation(instance)
+
+        representation['startDate'] = representation.pop('start_date')
+        representation['endDate'] = representation.pop('end_date')
+        representation['totalPrice'] = representation.pop('total_price')
+        representation['listing'] = representation.pop('property')
+
+        return representation

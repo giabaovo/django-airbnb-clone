@@ -12,7 +12,7 @@ from user_account.models import User
 
 from .permissions import IsAuthenticatedOrReadOnly
 
-from .exception import InvalidPropertyIDException
+from .exception import InvalidPropertyIDException, InvalidReservationException
 
 import datetime
 
@@ -73,19 +73,24 @@ class ToggleFavoritePropertyAPIView(APIView):
             raise APIException(detail=str(e))
 
 
-class ReservationAPIView(APIView):
+class ReservationByPropertyAPIView(APIView):
     def post(self, request, pk):
         data = request.data
 
         data["start_date"] = data.pop("startDate")
         data["end_date"] = data.pop("endDate")
-        data["property"] = data.pop("listingId")
         data["total_price"] = data.pop("totalPrice")
+
+        try:
+            property = Property.objects.get(pk=data["listingId"])
+        except Property.DoesNotExist:
+            raise InvalidPropertyIDException()
 
         serializer = ReservationSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(created_by=request.user)
+            serializer.save(created_by=request.user, property=property)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, pk):
@@ -96,3 +101,33 @@ class ReservationAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Property.DoesNotExist:
             raise InvalidPropertyIDException()
+
+
+class ReservationByUserIdAPIView(APIView):
+    def get(self, request):
+        try:
+            reservation = Reservation.objects.filter(created_by=request.user).order_by('-created_at')
+            serializer = ReservationSerializer(reservation, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise APIException(detail=str(e))
+
+
+class ReservationByAuthorAPIView(APIView):
+    def get(self, request):
+        try:
+            reservation = Reservation.objects.filter(property__landlord=request.user).order_by('-created_at')
+            serializer = ReservationSerializer(reservation, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise APIException(detail=str(e))
+
+
+class ReservationAPIView(APIView):
+    def delete(self, request, pk):
+        try:
+            reservation = Reservation.objects.get(pk=pk)
+            reservation.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Reservation.DoesNotExist:
+            raise InvalidReservationException()
