@@ -44,6 +44,21 @@ class PropertyByIdAPIView(APIView):
         serializer = PropertySerializer(property)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def delete(self, request, pk):
+        try:
+            property = Property.objects.get(pk=pk)
+            property.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Property.DoesNotExist:
+            raise InvalidPropertyIDException()
+
+
+class PropertyByUserAPIView(APIView):
+    def get(self, request):
+        property = Property.objects.filter(landlord=request.user).order_by('-created_at')
+        serializer = PropertySerializer(property, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class UserFavoritePropertyAPIView(APIView):
     def get(self, request):

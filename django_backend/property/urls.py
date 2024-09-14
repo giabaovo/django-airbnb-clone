@@ -8,12 +8,14 @@ from .api import (
     ReservationByPropertyAPIView,
     ReservationByUserIdAPIView,
     ReservationAPIView,
-    ReservationByAuthorAPIView
+    ReservationByAuthorAPIView,
+    PropertyByUserAPIView
 )
 
 urlpatterns = [
     path('', PropertyAPIView.as_view(), name='property'),
     path('<uuid:pk>/', PropertyByIdAPIView.as_view(), name='property-by-id'),
+    path('user-properties/', PropertyByUserAPIView.as_view(), name='property-by-user'),
 
     path('wishlist/', UserFavoritePropertyAPIView.as_view(), name='wishlist'),
     path('<uuid:pk>/favorite/', ToggleFavoritePropertyAPIView.as_view(), name='toggle-favorite'),
