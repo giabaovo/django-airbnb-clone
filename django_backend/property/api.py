@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.http import JsonResponse
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,13 +11,10 @@ from rest_framework.exceptions import APIException
 from .serializers import PropertySerializer, ReservationSerializer
 
 from .models import Property, Reservation
-from user_account.models import User
 
 from .permissions import IsAuthenticatedOrReadOnly
 
 from .exception import InvalidPropertyIDException, InvalidReservationException
-
-import datetime
 
 
 class PropertyAPIView(APIView):
@@ -31,8 +31,52 @@ class PropertyAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
-        property = Property.objects.all().order_by('-created_at')
-        serializer = PropertySerializer(property, many=True)
+        properties = Property.objects.all().order_by('-created_at')
+
+        bathroom = request.query_params.get('bathroomCount')
+        guest = request.query_params.get('guestCount')
+        room = request.query_params.get('roomCount')
+        category = request.query_params.get('category')
+        location = request.query_params.get('locationValue')
+        start_date = request.query_params.get('startDate')
+        end_date = request.query_params.get('endDate')
+
+        if start_date and end_date:
+
+            start_date = start_date.replace('T', ' ').split()[0]
+            format_start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            iso_start_date = format_start_date.isoformat()
+
+            end_date = end_date.replace('T', ' ').split()[0]
+            format_end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            iso_end_date = format_end_date.isoformat()
+
+            exact_matches = Reservation.objects.filter(start_date=iso_start_date) | Reservation.objects.filter(
+                end_date=iso_end_date)
+            overlap_matches = Reservation.objects.filter(start_date__lte=iso_end_date, end_date__gte=iso_start_date)
+            all_matches = []
+
+            for reservation in exact_matches | overlap_matches:
+                all_matches.append(reservation.property_id)
+
+            properties = properties.exclude(id__in=all_matches)
+
+        if bathroom:
+            properties = properties.filter(bathrooms__gte=bathroom)
+
+        if guest:
+            properties = properties.filter(guests__gte=bathroom)
+
+        if room:
+            properties = properties.filter(bedrooms__gte=room)
+
+        if category:
+            properties = properties.filter(category=category)
+
+        if location:
+            properties = properties.filter(country_code=location)
+
+        serializer = PropertySerializer(properties, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -94,6 +138,12 @@ class ReservationByPropertyAPIView(APIView):
         data["start_date"] = data.pop("startDate")
         data["end_date"] = data.pop("endDate")
         data["total_price"] = data.pop("totalPrice")
+
+        start_date = datetime.fromisoformat(data["start_date"])
+        data["start_date"] = start_date.astimezone(timezone.get_default_timezone())
+
+        end_date = datetime.fromisoformat(data["end_date"])
+        data["end_date"] = end_date.astimezone(timezone.get_default_timezone())
 
         try:
             property = Property.objects.get(pk=data["listingId"])
